@@ -1,0 +1,452 @@
+package main;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.Socket;
+import java.util.Scanner;
+
+public class ClientHandler extends Thread {
+	Socket komSoket = null;
+	BufferedReader odKlijenta = null;
+	PrintStream kaKlijentu = null;
+	public boolean prijavljenKlijent = false;
+	public String username;
+
+	public ClientHandler(Socket komSoket) {
+		this.komSoket = komSoket;
+	}
+
+	public void run() {
+		try {
+			odKlijenta = new BufferedReader(new InputStreamReader(komSoket.getInputStream()));
+			kaKlijentu = new PrintStream(komSoket.getOutputStream());
+			Server.dobrodoslicaDonatoru(this);
+			menu();
+			komSoket.close();
+
+		} catch (IOException e) {
+			System.err.println("Greska pri konekciji...");
+		}
+
+	}
+
+	public void menu() {
+		try {
+		while (true) {
+			if (this.prijavljenKlijent) {
+					kaKlijentu.print("Izaberite opciju:\n1. Uplata humanitarne pomoci;" + "\n2. Odjava korisnika;"
+							+ "\n3. Pregled ukupno skupljenih sredstava;" + "\n4. Pregled transakcija.\n");
+					String odgovor;
+					odgovor = odKlijenta.readLine();
+					if (odgovor.startsWith("exit")) {
+						Server.ispratiDonatora(this);
+						break;
+					}
+					if (!odgovor.matches("[0-9]+")) {
+						kaKlijentu.println("Pogresan unos, unesite samo broj izbora koji zelite.");
+						menu();
+						return;
+					}
+					int odg = Integer.valueOf(odgovor);
+					switch (odg) {
+					case 1:
+						String podaci = uplataP();
+						if (podaci.startsWith("GRESKA")) {
+							kaKlijentu.println("Pogresan format/Greska u konekciji/Nema kartice u bazi");
+						} else {
+							kaKlijentu.println("FAJL: " + podaci);
+							System.out.println("Uplata primljena.");
+							PrintWriter novi_fajl;
+							try {
+								novi_fajl = new PrintWriter("ukupno.txt", "UTF-8");
+								novi_fajl.write(Integer.toString(Server.ukupnoSakupljeno));
+								novi_fajl.close();
+							} catch (FileNotFoundException e) {
+								System.err.println("Greska u povezivanju s bazom.");
+							} catch (UnsupportedEncodingException e) {
+								System.err.println("Greska u upisivanju u fajl.");
+							}
+						}
+						break;
+					case 2:
+						odjava();
+						break;
+					case 3:
+						kaKlijentu.println(Server.ukupnoSakupljeno);
+						break;
+					case 4:
+						kaKlijentu.println(pregledTransakcija());
+						break;
+					default:
+						kaKlijentu.println("Pogresan unos, probajte ponovo.");
+						break;
+					}
+				} 
+			} else {
+					kaKlijentu.print("Izaberite opciju:\n1. Uplata humanitarne pomoci;\n"
+							+ "2. Registracija korisnika;\n" + "3. Prijava korisnika na sistem (username i password);\n"
+							+ "4. Pregled ukupno skupljenih sredstava;\n");
+					String odgovor;
+					odgovor = odKlijenta.readLine();
+					if (odgovor.startsWith("exit")) {
+						Server.ispratiDonatora(this);
+						break;
+					}
+					if (!odgovor.matches("[0-9]+")) {
+						kaKlijentu.println("Pogresan unos, unesite samo broj izbora koji zelite.");
+						menu();
+						return;
+					}
+					int odg = Integer.valueOf(odgovor);
+					switch (odg) {
+					case 1:
+						String podaci = uplata();
+						if (podaci.startsWith("GRESKA")) {
+							kaKlijentu.println("Pogresan format/Greska u konekciji/Nema kartice u bazi");
+						} else {
+							kaKlijentu.println("FAJL: " + podaci);
+							System.out.println("Uplata primljena.");
+							PrintWriter novi_fajl;
+							try {
+								novi_fajl = new PrintWriter("ukupno.txt", "UTF-8");
+								novi_fajl.write(Integer.toString(Server.ukupnoSakupljeno));
+								novi_fajl.close();
+							} catch (FileNotFoundException e) {
+								System.err.println("Greska u povezivanju s bazom.");
+							} catch (UnsupportedEncodingException e) {
+								System.err.println("Greska u upisivanju u fajl.");
+							}
+						}
+						break;
+					case 2:
+						kaKlijentu.println("Unesite svoje podatke za registraciju:");
+						registracija();
+						break;
+					case 3:
+						kaKlijentu.println("Unesite svoje podatke za prijavu:");
+						prijava();
+						break;
+					case 4:
+						kaKlijentu.println(Server.ukupnoSakupljeno);
+						break;
+					default:
+						kaKlijentu.println("Pogresan unos, probajte ponovo.");
+						break;
+					}
+				}
+			}
+		}catch (IOException e1) {
+			System.err.println("Greska u konekciji!");
+		}
+	}
+
+	private String pregledTransakcija() {
+		String poslednjih10="";
+		try {
+
+			File fajl = new File("uplate.txt");
+			Scanner citac = new Scanner(fajl);
+			while (citac.hasNextLine()) {
+				poslednjih10.concat(citac.nextLine()+"\n");
+			}
+			citac.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Baza nije povezana.");
+		}
+		return poslednjih10;
+	}
+
+	public String uplata() {
+		Donator d = new Donator();
+		try {
+			kaKlijentu.println("Ime: ");
+			String ime = odKlijenta.readLine();
+			d.setIme(ime);
+			kaKlijentu.println("Prezime: ");
+			String prezime = odKlijenta.readLine();
+			d.setPrezime(prezime);
+			kaKlijentu.println("Adresa: ");
+			String adresa = odKlijenta.readLine();
+			d.setAdresa(adresa);
+			kaKlijentu.println("NAPOMENA: format mora biti xxxx-xxxx-xxxx-xxxx\nBroj kartice: ");
+			String brojKartice = odKlijenta.readLine();
+			d.setBrojKartice(brojKartice);
+			kaKlijentu.println("NAPOMENA: CVV mora biti trocifreni broj");
+			int cvv = Integer.parseInt(odKlijenta.readLine());
+			d.setCvv(cvv);
+			if (!proveraBaza(brojKartice, cvv)) {
+				return "GRESKA: NEMA PODATAKA U BAZI";
+			}
+			kaKlijentu.println("NAPOMENA: minimalni iznos je 200 dinara");
+			int iznos = Integer.parseInt(odKlijenta.readLine());
+			d.setIznos(iznos);
+		} catch (IOException e1) {
+			System.err.println("Greska u povezivanju s klijentom.");
+			return ("GRESKA");
+		} catch (Exception e) {
+			System.err.println("Neispravan format.");
+			return ("GRESKA");
+		}
+		String naziv_fajla = d.getIme().trim() + "_" + d.getPrezime().trim() + "_uplata" + ".txt";
+		String admin = d.toString();
+		String puser = d.toStringP();
+		try {
+			PrintWriter novi_fajl = new PrintWriter(naziv_fajla, "UTF-8");
+			novi_fajl.write(admin);
+			novi_fajl.close();
+			FileWriter fileWriter = new FileWriter("uplate.txt", true);
+			fileWriter.write("\n" + puser);
+			fileWriter.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Greska pri povezivanju s fajlom.");
+			return ("GRESKA");
+		} catch (UnsupportedEncodingException e) {
+			System.err.println("Greska pri kodiranju podataka u fajlu.");
+			return ("GRESKA");
+		} catch (IOException e) {
+			System.err.println("Greska pri komunikaciji.");
+			return ("GRESKA");
+		}
+		Server.ukupnoSakupljeno += d.getIznos();
+		String user = d.toStringZaDonatora();
+		return user;
+	}
+
+	public String uplataP() {
+		Donator d = new Donator();
+		try {
+			String ime = "", prezime = "", brojKartice = "";
+			try {
+				File fajl = new File("registar.txt");
+				Scanner citac = new Scanner(fajl);
+				while (citac.hasNextLine()) {
+					String recenica = citac.nextLine();
+					String[] sets = recenica.split(" ");
+					if (sets[0].equals(this.username)) {
+						ime = sets[2];
+						prezime = sets[3];
+						brojKartice = sets[5];
+					}
+				}
+				citac.close();
+			} catch (FileNotFoundException e) {
+				System.err.println("Baza nije povezana.");
+			}
+			d.setIme(ime);
+			d.setPrezime(prezime);
+			d.setBrojKartice(brojKartice);
+			kaKlijentu.println("Adresa: ");
+			String adresa = odKlijenta.readLine();
+			d.setAdresa(adresa);
+			kaKlijentu.println("NAPOMENA: CVV mora biti trocifreni broj");
+			int cvv = Integer.parseInt(odKlijenta.readLine());
+			d.setCvv(cvv);
+			if (!proveraBaza(brojKartice, cvv)) {
+				return "GRESKA: NEMA PODATAKA U BAZI";
+			}
+			kaKlijentu.println("NAPOMENA: minimalni iznos je 200 dinara");
+			int iznos = Integer.parseInt(odKlijenta.readLine());
+			d.setIznos(iznos);
+		} catch (IOException e1) {
+			System.err.println("Greska u povezivanju s klijentom.");
+			return ("GRESKA");
+		} catch (Exception e) {
+			System.err.println("Neispravan format.");
+			return ("GRESKA");
+		}
+		String naziv_fajla = d.getIme().trim() + "_" + d.getPrezime().trim()+ "_uplata" + ".txt";
+		String admin = d.toString();
+		String puser = d.toStringP();
+		try {
+			PrintWriter novi_fajl = new PrintWriter(naziv_fajla, "UTF-8");
+			novi_fajl.write(admin);
+			novi_fajl.close();
+			FileWriter fileWriter = new FileWriter("uplate.txt", true);
+			fileWriter.write("\n" + puser);
+			fileWriter.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Greska pri povezivanju s fajlom.");
+			return ("GRESKA");
+		} catch (UnsupportedEncodingException e) {
+			System.err.println("Greska pri kodiranju podataka u fajlu.");
+			return ("GRESKA");
+		} catch (IOException e) {
+			System.err.println("Greska pri komunikaciji.");
+			return ("GRESKA");
+		}
+		Server.ukupnoSakupljeno += d.getIznos();
+		String user = d.toStringZaDonatora();
+		return user;
+	}
+
+	public boolean proveraBaza(String brojKartice, int cvv) {
+		try {
+			File fajl = new File("baza_kartica.txt");
+			Scanner citac = new Scanner(fajl);
+			citac.nextLine();
+			while (citac.hasNextLine()) {
+				String data = citac.nextLine();
+				String[] sets = data.split("!");
+				if (sets[0].equals(brojKartice) && Integer.parseInt(sets[1]) == cvv) {
+					citac.close();
+					return true;
+				}
+			}
+			citac.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Baza nije povezana.");
+			return false;
+		}
+		return false;
+	}
+	public boolean proveraBaza(String brojKartice) {
+		try {
+			File fajl = new File("baza_kartica.txt");
+			Scanner citac = new Scanner(fajl);
+			citac.nextLine();
+			while (citac.hasNextLine()) {
+				String data = citac.nextLine();
+				String[] sets = data.split("!");
+				if (sets[0].equals(brojKartice)) {
+					citac.close();
+					return true;
+				}
+			}
+			citac.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Baza nije povezana.");
+			return false;
+		}
+		return false;
+	}
+
+	public void registracija() {
+		Donator d = new Donator();
+		boolean gotovo = false;
+		try {
+			kaKlijentu.println("Username: ");
+			String username = odKlijenta.readLine();
+			d.setUsername(username);
+			if (postojiURegistru(username)) {
+				kaKlijentu.println("Username je vec iskoriscen - probaj ponovo");
+				return;
+			}
+			kaKlijentu.println("Password: ");
+			String password = odKlijenta.readLine();
+			d.setPassword(password);
+			kaKlijentu.println("Ime: ");
+			String ime = odKlijenta.readLine();
+			d.setIme(ime);
+			kaKlijentu.println("Prezime: ");
+			String prezime = odKlijenta.readLine();
+			d.setPrezime(prezime);
+			kaKlijentu.println("Email: ");
+			String email = odKlijenta.readLine();
+			d.setEmail(email);
+			kaKlijentu.println("NAPOMENA: format mora biti xxxx-xxxx-xxxx-xxxx\nBroj kartice: ");
+			String brojKartice = odKlijenta.readLine();
+			d.setBrojKartice(brojKartice);
+			if (!proveraBaza(brojKartice)) {
+				kaKlijentu.println("Kartica ne postoji u bazi.");
+				return;
+			}
+			kaKlijentu.println("JMBG: ");
+			String JMBG = odKlijenta.readLine();
+			d.setJMBG(JMBG);
+			gotovo = true;
+		} catch (IOException e) {
+			kaKlijentu.println("Probajte ponovo registraciju.");
+			System.err.println("Greska u povezivanju s klijentom.");
+		} catch (Exception e) {
+			kaKlijentu.println("Probajte ponovo registraciju.");
+			System.err.println("Neispravan format/Ne postoji kartica u bazi.");
+		}
+		try {
+			if (gotovo) {
+				FileWriter fileWriter = new FileWriter("registar.txt", true);
+				fileWriter.write("\n" + d.getUsername() + " " + d.getPassword() + " " + d.getIme() + " "
+						+ d.getPrezime() + " " + d.getEmail() + " " + d.getBrojKartice() + " " + d.getJMBG());
+				fileWriter.close();
+				System.out.println("Novi klijent registrovan.");
+				kaKlijentu.println("Uspesno ste registrovani!Dobrodosao: " + d.getUsername());
+			}
+		} catch (FileNotFoundException e) {
+			System.err.println("Greska u povezivanju s bazom.");
+		} catch (IOException e1) {
+			System.err.println("Greska u upisivanju u fajl.");
+		}
+
+	}
+
+	public void prijava() {
+		try {
+			kaKlijentu.println("Username: ");
+			String username = odKlijenta.readLine();
+			if (!postojiURegistru(username)) {
+				kaKlijentu.println("Niste registrovani, izaberite 2. opciju.");
+				return;
+			}
+			kaKlijentu.println("Password: ");
+			String password = odKlijenta.readLine();
+			if (!proveriSifru(username, password)) {
+				kaKlijentu.println("Pogresna sifra!");
+				return;
+			}
+			this.username = username;
+			this.prijavljenKlijent = true;
+			kaKlijentu.println("Uspesno ste prijavljeni!");
+		} catch (IOException e) {
+			System.err.println("Greska u povezivanju s klijentom.");
+		}
+
+	}
+
+	public void odjava() {
+		this.prijavljenKlijent = false;
+	}
+
+	public boolean postojiURegistru(String username) {
+		try {
+			File fajl = new File("registar.txt");
+			Scanner citac = new Scanner(fajl);
+			while (citac.hasNextLine()) {
+				String recenica = citac.nextLine();
+				String[] sets = recenica.split(" ");
+				if (sets[0].equals(username)) {
+					citac.close();
+					return true;
+				}
+			}
+			citac.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Baza nije povezana.");
+		}
+		return false;
+	}
+
+	public boolean proveriSifru(String username, String password) {
+		try {
+			File fajl = new File("registar.txt");
+			Scanner citac = new Scanner(fajl);
+			while (citac.hasNextLine()) {
+				String recenica = citac.nextLine();
+				String[] sets = recenica.split(" ");
+				if (sets[0].equals(username) && sets[1].equals(password)) {
+					citac.close();
+					return true;
+				}
+			}
+			citac.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("Baza nije povezana.");
+		}
+		return false;
+	}
+}

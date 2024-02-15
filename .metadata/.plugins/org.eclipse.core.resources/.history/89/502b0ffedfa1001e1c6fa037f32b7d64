@@ -1,0 +1,44 @@
+package main;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+public class Klijent extends Thread{
+	public static Socket komSoket=null;
+	public static BufferedReader odServera=null;
+	public static PrintStream kaServeru=null;
+	public static BufferedReader in=null;
+	public static void main(String[] args) {
+		try {
+			komSoket=new Socket("localhost",9001);
+			odServera=new BufferedReader(new InputStreamReader(komSoket.getInputStream()));
+			kaServeru=new PrintStream(komSoket.getOutputStream());
+			in=new BufferedReader(new InputStreamReader(System.in));
+			new Thread(new Klijent()).start();
+			
+			while(true) {
+				odServera.readLine();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	@Override
+	public void run() {
+			try {
+				while(true) {
+				String poruka=in.readLine();
+				kaServeru.println(poruka);
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
+}

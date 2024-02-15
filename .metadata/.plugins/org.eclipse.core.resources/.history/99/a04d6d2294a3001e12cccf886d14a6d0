@@ -1,0 +1,31 @@
+package main;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class Test {
+	public static void main(String[] args) {
+		BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
+		String brojKartice;
+		try {
+			brojKartice = in.readLine();
+			String[]brojevi=brojKartice.split("-");
+			for(int i=0;i<brojevi.length;i++) {
+				if(brojevi[i].length()!=4){
+					System.out.println("KURAC NE VALJA");
+				}
+			}
+			if(brojKartice.length()!=19) {
+				System.out.println("KURAC NE VALJA");
+			}
+			if(brojKartice.charAt(4)!='-'||brojKartice.charAt(9)!='-'||brojKartice.charAt(14)!='-') {
+				System.out.println("KURAC NE VALJA");
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+}

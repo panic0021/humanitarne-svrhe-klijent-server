@@ -1,0 +1,6 @@
+IME: Jovan
+PREZIME: Jovanovic
+ADRESA: Bulevar kralja Aleksandra 123
+BROJ KARTICE: 9876-5432-1098-7654
+CVV: 456
+IZNOS: 1000

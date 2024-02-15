@@ -1,0 +1,26 @@
+package main;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+
+public class Server {
+	public static ArrayList<ClientHandler> donatori = new ArrayList<>();
+
+	public static void main(String[] args) {
+		try {
+			ServerSocket serverskiSoket = new ServerSocket(9001);
+			while (true) {
+				System.out.println("Osluskujem...");
+				Socket komSoket = serverskiSoket.accept();
+				System.out.println("Veza uspostavljena!");
+				new Thread(new ClientHandler(komSoket)).start();
+			}
+
+		} catch (IOException e) {
+			System.out.println("greska");
+		}
+	}
+	
+}

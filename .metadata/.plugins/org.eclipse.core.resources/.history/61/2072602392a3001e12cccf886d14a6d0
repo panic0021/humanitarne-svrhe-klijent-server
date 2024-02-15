@@ -1,0 +1,10 @@
+package main;
+
+public class Donator {
+	String ime;
+	String prezime;;
+	String adresa;
+	String brojKartice;
+	String cvv;
+	String iznos;
+}

@@ -1,0 +1,5 @@
+INDEX VERSION 1.131+C:\Users\panic\OneDrive\Radna površina\RMT II\.metadata\.plugins\org.eclipse.jdt.core
+3978037574.index
+2537405298.index
+1656983790.index
+1865797976.index

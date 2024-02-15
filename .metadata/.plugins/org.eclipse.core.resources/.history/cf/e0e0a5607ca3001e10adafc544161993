@@ -1,0 +1,55 @@
+package main;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+public class Klijent implements Runnable {
+	public static Socket komSoket = null;
+	public static BufferedReader odServera = null;
+	public static PrintStream kaServeru = null;
+	public static BufferedReader in = null;
+
+	public static void main(String[] args) {
+		try {
+			komSoket = new Socket("localhost", 9003);
+			odServera = new BufferedReader(new InputStreamReader(komSoket.getInputStream()));
+			kaServeru = new PrintStream(komSoket.getOutputStream());
+			in = new BufferedReader(new InputStreamReader(System.in));
+			new Thread(new Klijent()).start();
+			while (true) {
+				String porukaServera = odServera.readLine();
+				System.out.println(porukaServera);
+				if(porukaServera.contains("goodbye")) {
+					break;
+				}
+				if(porukaServera.startsWith("Osnovni podaci o uplati:")) {
+					System.out.println("KUUUURAC");
+				}
+			}
+			komSoket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	@Override
+	public void run() {
+		try {
+			while (true) {
+				String poruka = in.readLine();
+				if (poruka.contains("exit")) {
+					break;
+				}
+				kaServeru.println(poruka);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}

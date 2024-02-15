@@ -1,0 +1,52 @@
+package main;
+
+public class Donator {
+	private String ime;
+	private String prezime;;
+	private String adresa;
+	private String brojKartice;
+	private String cvv;
+	private String iznos;
+	public String getIme() {
+		return ime;
+	}
+	public void setIme(String ime) {
+		this.ime = ime;
+	}
+	public String getPrezime() {
+		return prezime;
+	}
+	public void setPrezime(String prezime) {
+		this.prezime = prezime;
+	}
+	public String getAdresa() {
+		return adresa;
+	}
+	public void setAdresa(String adresa) {
+		this.adresa = adresa;
+	}
+	public String getBrojKartice() {
+		return brojKartice;
+	}
+	public void setBrojKartice(String brojKartice) {
+		this.brojKartice = brojKartice;
+	}
+	public String getCvv() {
+		return cvv;
+	}
+	public void setCvv(String cvv) {
+		this.cvv = cvv;
+	}
+	public String getIznos() {
+		return iznos;
+	}
+	public void setIznos(String iznos) {
+		this.iznos = iznos;
+	}
+	@Override
+	public String toString() {
+		return "Donator [ime=" + ime + ", prezime=" + prezime + ", adresa=" + adresa + ", brojKartice=" + brojKartice
+				+ ", cvv=" + cvv + ", iznos=" + iznos + "]";
+	}
+	s
+}

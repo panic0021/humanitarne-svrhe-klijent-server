@@ -1,0 +1,47 @@
+package main;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+
+public class Server {
+	public static ArrayList<ClientHandler> donatori = new ArrayList<>();
+	public static ServerSocket serverskiSoket=null;
+	public static void main(String[] args) {
+		try {
+			serverskiSoket = new ServerSocket(9004);
+			while (true) {
+				System.out.println("Osluskujem...");
+				Socket komSoket = serverskiSoket.accept();
+				System.out.println("Veza uspostavljena!");
+				ClientHandler noviDonator=new ClientHandler(komSoket);
+				donatori.add(noviDonator);
+				noviDonator.start();
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void dobrodoslicaDonatoru(ClientHandler new_client) {
+		for (ClientHandler don : donatori) {
+			if (don == new_client) {
+				new_client.kaKlijentu.println("Dobrodosao, ako zelis da prekines ukucaj exit");
+				break;
+			}
+		}
+	}
+	public static void ispratiDonatora(ClientHandler new_client) {
+		for (ClientHandler don : donatori) {
+			if (don == new_client) {
+				new_client.kaKlijentu.println("Dovidjenja!");
+				break;
+			}
+		}
+		donatori.remove(new_client);
+	}
+
+	
+}
